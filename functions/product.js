@@ -1,11 +1,9 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
+const firestore = admin.firestore();
+
 const FieldValue = admin.firestore.FieldValue;
-
-admin.initializeApp();
-
-const db = admin.firestore();
 
 exports.setUserRating = functions.https.onRequest(async (req, res) => {
   const productId = req.query.productId;
@@ -19,7 +17,7 @@ exports.setUserRating = functions.https.onRequest(async (req, res) => {
   if (score < 1)
     score = 1;
 
-  await db.doc(`products/${productId}/userRatings/${userId}`).set({score: score});
+  await firestore.doc(`products/${productId}/userRatings/${userId}`).set({score: score});
 
   res.json({success: true});
 });
@@ -31,7 +29,7 @@ exports.getUserRating = functions.https.onRequest(async (req, res) => {
   let success = false;
   let score = 0;
 
-  const rating = await db.doc(`products/${productId}/userRatings/${userId}`).get();
+  const rating = await firestore.doc(`products/${productId}/userRatings/${userId}`).get();
   if (rating.exists) {
     const data = rating.data();
     if (data.score) {
@@ -52,7 +50,7 @@ exports.getRating = functions.https.onRequest(async (req, res) => {
   let success = false;
   let score = 0;
 
-  const product = await db.doc(`products/${productId}`).get();
+  const product = await firestore.doc(`products/${productId}`).get();
   if (product.exists) {
     const data = product.data();
     if (data.userRatingsScoreSum && data.userRatingsCount && data.userRatingsCount !== 0) {
