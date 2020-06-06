@@ -31,7 +31,7 @@ exports.setProduct = functions.https.onRequest(async (req, res) => {
   const amount = Number(req.query.amount);
 
   const productSnapshot = await firestore.doc(`products/${productId}`).get();
-  const price = productSnapshot.get("sellPrice") || 0;
+  const price = productSnapshot.get("sellPrice") || productSnapshot.get("sell_price") || 0;
 
   if (amount > 0) {
     await firestore.doc(`carts/${userId}/products/${productId}`).set({
@@ -52,7 +52,6 @@ exports.setProduct = functions.https.onRequest(async (req, res) => {
 exports.createOrder = functions.https.onRequest(async (req, res) => {
   const userId = req.query.userId;
   const deliveryAddress = req.query.deliveryAddress;
-  console.log(req.query.deliveryDate);
   const deliveryDate = TimeStamp.fromDate(new Date(req.query.deliveryDate));
 
   let products = [];
@@ -76,7 +75,9 @@ exports.createOrder = functions.https.onRequest(async (req, res) => {
     promises.push(cartProduct.ref.delete());
   });
 
-  const activeOrder = await firestore.collection(`orders/${userId}/active`).add({
+  const order = await firestore.collection(`orders`).add({
+    userId: userId,
+    status: "active",
     products: products,
     totalPrice: totalPrice,
     deliveryAddress: deliveryAddress,
@@ -87,6 +88,6 @@ exports.createOrder = functions.https.onRequest(async (req, res) => {
 
   res.json({
     success: true,
-    activeOrderId: activeOrder.id
+    orderId: order.id
   });
 });
