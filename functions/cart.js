@@ -7,7 +7,7 @@ const TimeStamp = admin.firestore.Timestamp;
 
 // clear all products in the user cart
 exports.clearProducts = functions.https.onRequest(async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.query['user_id'];
 
   const cartProductSnapshot = await firestore.collection(`carts/${userId}/products`).get();
 
@@ -19,24 +19,24 @@ exports.clearProducts = functions.https.onRequest(async (req, res) => {
   await Promise.all(promises);
 
   res.json({
-    success: true
+    'success': true
   });
 });
 
 // set a new amount of a product in the user cart
 // set amount to 0 to remove the product from the user cart
 exports.setProduct = functions.https.onRequest(async (req, res) => {
-  const userId = req.query.userId;
-  const productId = req.query.productId;
-  const amount = Number(req.query.amount);
+  const userId = req.query["user_id"];
+  const productId = req.query["product_id"];
+  const amount = Number(req.query["amount"]);
 
   const productSnapshot = await firestore.doc(`products/${productId}`).get();
-  const price = productSnapshot.get("sellPrice") || productSnapshot.get("sell_price") || 0;
+  const price = Number(productSnapshot.get("sell_price")) || 0;
 
   if (amount > 0) {
     await firestore.doc(`carts/${userId}/products/${productId}`).set({
-      amount: amount,
-      price: price
+      "amount": amount,
+      "price": price
     });
   }
   else {
@@ -44,15 +44,21 @@ exports.setProduct = functions.https.onRequest(async (req, res) => {
   }
 
   res.json({
-    success: true
+    "success": true
   });
 });
 
 // convert cart to an order
 exports.createOrder = functions.https.onRequest(async (req, res) => {
-  const userId = req.query.userId;
-  const deliveryAddress = req.query.deliveryAddress;
-  const deliveryDate = TimeStamp.fromDate(new Date(req.query.deliveryDate));
+  const userId = req.query["user_id"];
+  const deliveryAddress = req.query["delivery_address"];
+
+  const orderDate = new Date();
+
+  var dueDate = new Date();
+  dueDate.setTime(dueDate.getTime() + 1 * 60 * 60 * 1000);
+
+  const deliveryDate = new Date(req.query["delivery_date"]);
 
   let products = [];
   let totalPrice = 0;
@@ -61,13 +67,13 @@ exports.createOrder = functions.https.onRequest(async (req, res) => {
 
   promises = [];
   cartProductSnapshot.forEach((cartProduct) => {
-    const amount = cartProduct.get("amount") || 0;
-    const price = cartProduct.get("price") || 0;
+    const amount = Number(cartProduct.get("amount")) || 0;
+    const price = Number(cartProduct.get("price")) || 0;
 
     products.push({
-      id: cartProduct.id,
-      amount: amount,
-      price: price
+      "id": cartProduct.id,
+      "amount": amount,
+      "price": price
     });
 
     totalPrice += amount * price;
@@ -76,18 +82,21 @@ exports.createOrder = functions.https.onRequest(async (req, res) => {
   });
 
   const order = await firestore.collection(`orders`).add({
-    userId: userId,
-    status: "active",
-    products: products,
-    totalPrice: totalPrice,
-    deliveryAddress: deliveryAddress,
-    deliveryDate: deliveryDate
+    "user_id": userId,
+    "status": 0,
+    "products": products,
+    "total_price": totalPrice,
+    "final_price": totalPrice,
+    "delivery_address": deliveryAddress,
+    "order_date": TimeStamp.fromDate(orderDate),
+    "due_date": TimeStamp.fromDate(dueDate),
+    "delivery_date": TimeStamp.fromDate(deliveryDate)
   });
 
   await Promise.all(promises);
 
   res.json({
-    success: true,
-    orderId: order.id
+    "success": true,
+    "order_id": order.id
   });
 });
