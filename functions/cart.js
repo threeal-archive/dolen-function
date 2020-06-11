@@ -26,17 +26,17 @@ exports.clearProducts = functions.https.onRequest(async (req, res) => {
 // set a new amount of a product in the user cart
 // set amount to 0 to remove the product from the user cart
 exports.setProduct = functions.https.onRequest(async (req, res) => {
-  const userId = req.query["user_id"];
-  const productId = req.query["product_id"];
-  const amount = Number(req.query["amount"]);
+  const userId = req.query['user_id'];
+  const productId = req.query['product_id'];
+  const amount = Number(req.query['amount']);
 
   const productSnapshot = await firestore.doc(`products/${productId}`).get();
-  const price = Number(productSnapshot.get("sell_price")) || 0;
+  const price = Number(productSnapshot.get('sell_price')) || 0;
 
   if (amount > 0) {
     await firestore.doc(`carts/${userId}/products/${productId}`).set({
-      "amount": amount,
-      "price": price
+      'amount': amount,
+      'price': price
     });
   }
   else {
@@ -44,21 +44,21 @@ exports.setProduct = functions.https.onRequest(async (req, res) => {
   }
 
   res.json({
-    "success": true
+    'success': true
   });
 });
 
 // convert cart to an order
 exports.createOrder = functions.https.onRequest(async (req, res) => {
-  const userId = req.query["user_id"];
-  const deliveryAddress = req.query["delivery_address"];
+  const userId = req.query['user_id'];
+  const deliveryAddress = req.query['delivery_address'];
 
   const orderDate = new Date();
 
   var dueDate = new Date();
   dueDate.setTime(dueDate.getTime() + 1 * 60 * 60 * 1000);
 
-  const deliveryDate = new Date(req.query["delivery_date"]);
+  const deliveryDate = new Date(req.query['delivery_date']);
 
   let products = [];
   let totalPrice = 0;
@@ -67,13 +67,13 @@ exports.createOrder = functions.https.onRequest(async (req, res) => {
 
   promises = [];
   cartProductSnapshot.forEach((cartProduct) => {
-    const amount = Number(cartProduct.get("amount")) || 0;
-    const price = Number(cartProduct.get("price")) || 0;
+    const amount = Number(cartProduct.get('amount')) || 0;
+    const price = Number(cartProduct.get('price')) || 0;
 
     products.push({
-      "id": cartProduct.id,
-      "amount": amount,
-      "price": price
+      'id': cartProduct.id,
+      'amount': amount,
+      'price': price
     });
 
     totalPrice += amount * price;
@@ -82,21 +82,21 @@ exports.createOrder = functions.https.onRequest(async (req, res) => {
   });
 
   const order = await firestore.collection(`orders`).add({
-    "user_id": userId,
-    "status": 0,
-    "products": products,
-    "total_price": totalPrice,
-    "final_price": totalPrice,
-    "delivery_address": deliveryAddress,
-    "order_date": TimeStamp.fromDate(orderDate),
-    "due_date": TimeStamp.fromDate(dueDate),
-    "delivery_date": TimeStamp.fromDate(deliveryDate)
+    'user_id': userId,
+    'status': 0,
+    'products': products,
+    'total_price': totalPrice,
+    'final_price': totalPrice,
+    'delivery_address': deliveryAddress,
+    'order_date': TimeStamp.fromDate(orderDate),
+    'due_date': TimeStamp.fromDate(dueDate),
+    'delivery_date': TimeStamp.fromDate(deliveryDate)
   });
 
   await Promise.all(promises);
 
   res.json({
-    "success": true,
-    "order_id": order.id
+    'success': true,
+    'order_id': order.id
   });
 });
